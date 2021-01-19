@@ -31,3 +31,6 @@ examples:
   jsdu --no-link .
   jsdu --help
 ```
+
+## License
+[BSD-2-Clause](./LICENSE) (Free Open Source Project)
