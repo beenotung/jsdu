@@ -1,0 +1,34 @@
+{
+  "name": "jsdu",
+  "version": "0.1.0",
+  "description": "like ncdu but show progressive result asap",
+  "bin": "jsdu",
+  "keywords": [
+    "ncdu",
+    "cli",
+    "tool",
+    "cmd",
+    "progressive",
+    "asap"
+  ],
+  "author": {
+    "name": "Beeno Tung",
+    "email": "aabbcc1241@yahoo.com.hk",
+    "url": "https://beeno-tung.surge.sh"
+  },
+  "license": "BSD-2-Clause",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beenotung/jsdu.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beenotung/jsdu/issues"
+  },
+  "homepage": "https://github.com/beenotung/jsdu#readme",
+  "scripts": {
+    "format": "prettier --write jsdu"
+  },
+  "devDependencies": {
+    "prettier": "^2.2.1"
+  }
+}

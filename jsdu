@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+let fs = require("fs");
+let path = require("path");
+
+function show_help() {
+  let pkg = require("./package.json");
+  console.log(
+    `
+jsdu ${pkg.version}
+
+usage: jsdu [flag] [dir]
+
+options:
+  flag: optional, details see below
+  dir:  optional, default is current directory
+
+flags:
+  -h | --help:        show help messages
+  -l | --follow-link: follow symbolic links
+  -n | --no-link:     skip symbolic links
+
+examples:
+  jsdu
+  jsdu .
+  jsdu --follow-link .
+  jsdu --no-link .
+  jsdu --help
+`.trim()
+  );
+}
+
+let dir = ".";
+let link = false;
+process.argv.slice(2).forEach((arg) => {
+  switch (arg) {
+    case "-h":
+    case "--help":
+      show_help();
+      process.exit();
+      break;
+    case "-l":
+    case "--follow-link":
+      link = true;
+      break;
+    case "-n":
+    case "--no-link":
+      link = false;
+      break;
+    default:
+      dir = arg;
+  }
+});
+let fs_stat = link ? fs.stat : fs.lstat;
+
+process.stdin.setRawMode(true);
+process.stdin.resume();
+process.stdin.on("data", (data) => {
+  process.kill(process.pid, "SIGTERM");
+  callback = () => {};
+  process.exit();
+});
+
+function die(err) {
+  console.error(err);
+  process.exit(1);
+}
+
+function range(x) {
+  return new Array(x).fill(0).map((_, i) => i);
+}
+
+function clear() {
+  range(25).forEach(() => console.log());
+}
+
+let timer;
+
+function print(msg) {
+  console.log("=".repeat(80));
+  console.log(msg);
+  console.log("=".repeat(80));
+}
+
+let units = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"];
+
+function formatSize(bytes) {
+  return (
+    units
+      .map((unit, i) => {
+        if (bytes <= 1024 ** (i + 1)) {
+          let size = Math.round((bytes / 1024 ** i) * 10) / 10 + "";
+          if (!size.includes(".")) {
+            size += ".0";
+          }
+          return size + unit;
+        }
+      })
+      .find((s) => s) || "Inf"
+  );
+}
+
+let rootFiles;
+
+function do_report() {
+  rootFiles.sort((a, b) => a.size - b.size);
+  let maxW = 0;
+  let files = rootFiles.slice(-20).map((file) => {
+    let size = formatSize(file.size);
+    maxW = Math.max(maxW, size.length);
+    return { size, file: file.file };
+  });
+  let msg = files
+    .map((file) => {
+      let pad = " ".repeat(Math.max(0, maxW - file.size.length) + 1);
+      return pad + file.size + "  " + file.file;
+    })
+    .join("\n");
+  print(msg);
+}
+
+function report() {
+  clearTimeout(timer);
+  timer = setTimeout(() => {
+    do_report();
+    if (pending > 0) {
+      console.log("pending:", pending);
+      return;
+    }
+    console.log("done");
+    process.exit();
+  }, 1);
+}
+
+let pending = 0;
+
+function callback(fn) {
+  pending++;
+  return (err, data) => {
+    pending--;
+    if (err) return;
+    fn(data);
+    report();
+  };
+}
+
+function scan(rootFile, file) {
+  fs_stat(
+    file,
+    callback((stat) => {
+      if (stat.isFile()) {
+        rootFile.size += stat.size;
+        return;
+      }
+      if (stat.isDirectory()) {
+        fs.readdir(
+          file,
+          callback((files) => {
+            files.forEach((f) => {
+              f = path.join(file, f);
+              scan(rootFile, f);
+            });
+          })
+        );
+      }
+    })
+  );
+}
+
+fs.readdir(dir, (err, files) => {
+  if (err) return die(err);
+  rootFiles = files.map((file) => {
+    if (dir !== ".") file = path.join(dir, file);
+    let rootFile = {
+      file,
+      size: 0,
+    };
+    scan(rootFile, file);
+    return rootFile;
+  });
+  report();
+});
