@@ -52,13 +52,15 @@ process.argv.slice(2).forEach((arg) => {
 });
 let fs_stat = link ? fs.stat : fs.lstat;
 
-process.stdin.setRawMode(true);
-process.stdin.resume();
-process.stdin.on("data", (data) => {
-  process.kill(process.pid, "SIGTERM");
-  callback = () => {};
-  process.exit();
-});
+if (typeof process.stdin.setRawMode === "function") {
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on("data", (data) => {
+    process.kill(process.pid, "SIGTERM");
+    callback = () => {};
+    process.exit();
+  });
+}
 
 function die(err) {
   console.error(err);
