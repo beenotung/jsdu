@@ -56,7 +56,9 @@ if (typeof process.stdin.setRawMode === "function") {
   process.stdin.setRawMode(true);
   process.stdin.resume();
   process.stdin.on("data", (data) => {
-    process.kill(process.pid, "SIGTERM");
+    // process.kill(process.pid, "SIGTERM");
+    console.log("\naborted");
+    clearTimeout(timer);
     callback = () => {};
     process.exit();
   });
@@ -76,11 +78,15 @@ function clear() {
 }
 
 let timer;
+let interval = 500;
+let nextTime = 0;
 
-function print(msg) {
-  console.log("=".repeat(80));
-  console.log(msg);
-  console.log("=".repeat(80));
+function print(lines) {
+  let n = Math.max(...lines.map((line) => line.length));
+  n = Math.min(n, process.stdout.columns);
+  let separator = "=".repeat(n);
+  let message = separator + "\n" + lines.join("\n") + "\n" + separator;
+  console.log(message);
 }
 
 let units = ["", "K", "M", "G", "T", "P", "E", "Z", "Y"];
@@ -111,26 +117,34 @@ function do_report() {
     maxW = Math.max(maxW, size.length);
     return { size, file: file.file };
   });
-  let msg = files
+  let lines = files
     .map((file) => {
       let pad = " ".repeat(Math.max(0, maxW - file.size.length) + 1);
       return pad + file.size + "  " + file.file;
-    })
-    .join("\n");
-  print(msg);
+    });
+  console.clear();
+  print(lines);
+  if (pending > 0) {
+    console.log("pending:", pending);
+    process.stdout.write("\n[Press any key to exit]");
+    return;
+  }
+  console.log("done");
+  process.exit();
 }
 
 function report() {
   clearTimeout(timer);
+  let now = Date.now();
+  if (now >= nextTime) {
+    do_report();
+    nextTime = now + interval;
+    return;
+  }
   timer = setTimeout(() => {
     do_report();
-    if (pending > 0) {
-      console.log("pending:", pending);
-      return;
-    }
-    console.log("done");
-    process.exit();
-  }, 1);
+    nextTime = Date.now() + interval;
+  }, nextTime - now);
 }
 
 let pending = 0;
