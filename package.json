@@ -1,6 +1,6 @@
 {
   "name": "jsdu",
-  "version": "0.2.2",
+  "version": "1.0.0",
   "description": "like ncdu but show progressive result asap",
   "bin": {
     "jsdu": "jsdu"
