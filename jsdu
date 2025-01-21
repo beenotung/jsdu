@@ -8,13 +8,13 @@ function show_help() {
     `
 jsdu ${pkg.version}
 
-usage: jsdu [flag] [dir]
+usage: jsdu [options] [dir]
+
+arguments:
+  options: optional, details see below
+  dir:     optional, default is current directory
 
 options:
-  flag: optional, details see below
-  dir:  optional, default is current directory
-
-flags:
   -h | --help:        show help messages
   -l | --follow-link: follow symbolic links
   -n | --no-link:     skip symbolic links
