@@ -1,17 +1,19 @@
 # jsdu
 
-like ncdu but show progressive result asap*
+like ncdu but show progressive result asap\*
 
-asap*: as soon as possible
+asap\*: as soon as possible
 
 [![npm Package Version](https://img.shields.io/npm/v/jsdu.svg?maxAge=2592000)](https://www.npmjs.com/package/jsdu)
 
 ## Installation
+
 ```shell
 npm i -g jsdu
 ```
 
 ## Usage
+
 ```
 usage: jsdu [options] [dir]
 
@@ -34,4 +36,5 @@ examples:
 ```
 
 ## License
+
 [BSD-2-Clause](./LICENSE) (Free Open Source Project)
