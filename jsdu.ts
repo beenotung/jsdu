@@ -75,7 +75,7 @@ if (typeof process.stdin.setRawMode === 'function') {
   process.stdin.setRawMode(true)
   process.stdin.resume()
   process.stdin.on('data', () => {
-    // process.stdout.write('  [aborted]')
+    process.stdout.write('\r')
     process.exit()
   })
 }
