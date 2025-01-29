@@ -13,16 +13,17 @@ npm i -g jsdu
 
 ## Usage
 ```
-usage: jsdu [flag] [dir]
+usage: jsdu [options] [dir]
+
+arguments:
+  options: optional, details see below
+  dir:     optional, default is current directory
 
 options:
-  flag: optional, details see below
-  dir:  optional, default is current directory
-
-flags:
   -h | --help:        show help messages
   -l | --follow-link: follow symbolic links
   -n | --no-link:     skip symbolic links
+  -i | --interval:    interval of report, default is 1000ms
 
 examples:
   jsdu
