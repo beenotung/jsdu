@@ -61,6 +61,9 @@ for (let i = 2; i < process.argv.length; i++) {
       }
       break
     default:
+      if (dir !== '.') {
+        die(`Error: invalid argument: ${JSON.stringify(arg)}`)
+      }
       dir = arg
       if (!existsSync(dir)) {
         die(`Error: directory not found: ${dir}`)
