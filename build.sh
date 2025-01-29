@@ -2,7 +2,12 @@
 set -e
 set -o pipefail
 
-npx esbuild --bundle --platform=node --outfile=jsdu jsdu.ts
+npx esbuild \
+  --bundle \
+  --minify-whitespace \
+  --platform=node \
+  --outfile=jsdu \
+  jsdu.ts
 echo "#!/usr/bin/env node" > out
 cat jsdu >> out
 chmod +x out
