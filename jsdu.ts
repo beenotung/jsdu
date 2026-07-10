@@ -185,7 +185,7 @@ function getTailLength(text: string): number {
 
 let rootFiles = readdirSync(dir).map(filename => {
   let file = dir === '.' ? filename : join(dir, filename)
-  return { file, size: 0 }
+  return { file, size: 0, ok: false, error: false }
 })
 
 type RootFile = (typeof rootFiles)[number]
@@ -195,20 +195,14 @@ function checkFile(rootFile: RootFile, file: string) {
   pending++
   statFn(file, (err, stat) => {
     pending--
-    if (
-      err &&
-      /* e.g. when scanning '/lost+found' */
-      err.code !== 'EACCES' &&
-      /* e.g. when scanning '/proc/2275821/fd/21' */
-      err.code !== 'ENOENT'
-    ) {
-      die(String(err))
-    }
     if (err) {
+      /* continue on errors, e.g. EACCES on '/lost+found', ENOENT on '/proc/.../fd/...' */
+      rootFile.error = true
       report()
       return
     }
     if (stat.isFile()) {
+      rootFile.ok = true
       rootFile.size += stat.size
       report()
       return
@@ -218,16 +212,9 @@ function checkFile(rootFile: RootFile, file: string) {
       let dir = file
       readdir(dir, (err, filenames) => {
         pending--
-        if (
-          err &&
-          /* e.g. when scanning '/lost+found' */
-          err.code !== 'EACCES' &&
-          /* e.g. when scanning '/proc/2275821/fd/21' */
-          err.code !== 'ENOENT'
-        ) {
-          die(String(err))
-        }
         if (err) {
+          /* continue on errors, e.g. EACCES / ENOENT */
+          rootFile.error = true
           report()
           return
         }
@@ -258,6 +245,17 @@ function formatSize(bytes: number): string {
     threshold *= 1024
   }
   return 'Inf'
+}
+
+function formatRootSize(item: RootFile): { mark: string; size: string } {
+  if (item.error && !item.ok) {
+    return { mark: '  ', size: '???' }
+  }
+  let size = formatSize(item.size)
+  if (item.error) {
+    return { mark: '>=', size }
+  }
+  return { mark: '  ', size }
 }
 
 let minHeading = `== ${name} ==`.length
@@ -296,13 +294,13 @@ function doReport() {
     .sort((a, b) => a.size - b.size)
     .slice(-maxItemCount)
     .map(item => {
-      let size = formatSize(item.size)
+      let { mark, size } = formatRootSize(item)
       maxSizeWidth = Math.max(maxSizeWidth, size.length)
 
       let file = item.file
       maxFileWidth = Math.max(maxFileWidth, file.length)
 
-      return { size, file }
+      return { mark, size, file }
     })
 
   let pendingMessage = `pending: ${pending}`
@@ -311,12 +309,12 @@ function doReport() {
     pending === 0
       ? Math.max(
           minHeading,
-          1 + maxSizeWidth + 2 + maxFileWidth,
+          1 + 2 + 1 + maxSizeWidth + 2 + maxFileWidth,
           doneMessage.length,
         )
       : Math.max(
           minHeading,
-          1 + maxSizeWidth + 2 + maxFileWidth,
+          1 + 2 + 1 + maxSizeWidth + 2 + maxFileWidth,
           pendingMessage.length,
           stopMessage.length,
         )
@@ -335,12 +333,12 @@ function doReport() {
 
   cli.writeln(heading)
   for (let item of items) {
-    let { size, file } = item
+    let { mark, size, file } = item
     let extra = maxSizeWidth - size.length
     if (extra > 0) {
       size = ' '.repeat(extra) + size
     }
-    cli.writeln(` ${size}  ${file}`)
+    cli.writeln(` ${mark} ${size}  ${file}`)
   }
   cli.writeln(separator)
   if (pending === 0) {
