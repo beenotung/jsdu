@@ -41,5 +41,10 @@
   },
   "files": [
     "jsdu"
-  ]
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
 }
