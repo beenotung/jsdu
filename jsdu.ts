@@ -190,32 +190,54 @@ let rootFiles = readdirSync(dir).map(filename => {
 
 type RootFile = (typeof rootFiles)[number]
 
-let pending = 0
+let active = 0
+let maxActive = 64
+let queue: Array<() => void> = []
+
+function getPending() {
+  return active + queue.length
+}
+
+function schedule(task: () => void) {
+  queue.push(task)
+  pump()
+}
+
+function pump() {
+  while (active < maxActive && queue.length > 0) {
+    active++
+    queue.shift()!()
+  }
+}
+
 function checkFile(rootFile: RootFile, file: string) {
-  pending++
-  statFn(file, (err, stat) => {
-    pending--
+  schedule(() => statFn(file, onStat))
+  function onStat(err: NodeJS.ErrnoException | null, stat: import('fs').Stats) {
+    active--
     if (err) {
       /* continue on errors, e.g. EACCES on '/lost+found', ENOENT on '/proc/.../fd/...' */
       rootFile.error = true
       report()
+      pump()
       return
     }
     if (stat.isFile()) {
       rootFile.ok = true
       rootFile.size += stat.size
       report()
+      pump()
       return
     }
     if (stat.isDirectory()) {
-      pending++
       let dir = file
-      readdir(dir, (err, filenames) => {
-        pending--
+      schedule(() => readdir(dir, onDir))
+      function onDir(err: NodeJS.ErrnoException | null, filenames: string[]) {
+        active--
         if (err) {
           /* continue on errors, e.g. EACCES / ENOENT */
           rootFile.error = true
           report()
+          pump()
           return
         }
         for (let filename of filenames) {
@@ -223,12 +245,15 @@ function checkFile(rootFile: RootFile, file: string) {
           checkFile(rootFile, file)
         }
         report()
-      })
+        pump()
+      }
       report()
+      pump()
       return
     }
     report()
-  })
+    pump()
+  }
 }
 
 let running = false
@@ -268,9 +293,7 @@ let doneMessage = `done.`
 function doReport() {
   let { columns, rows } = process.stdout
 
-  if (!running) {
-    pending = rootFiles.length
-  }
+  let pending = running ? getPending() : rootFiles.length
 
   let maxItemCount =
     pending === 0
@@ -352,10 +375,6 @@ function doReport() {
     cli.write(stopMessage)
   }
   cli.flush()
-
-  if (!running) {
-    pending = 0
-  }
 }
 
 function report() {
@@ -365,7 +384,7 @@ function report() {
     doReport()
     nextReport = now + interval
   }
-  if (running && pending === 0) {
+  if (running && getPending() === 0) {
     if (!needReport) {
       doReport()
     }
