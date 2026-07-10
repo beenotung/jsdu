@@ -222,7 +222,10 @@ function checkFile(rootFile: RootFile, file: string) {
           let file = join(dir, filename)
           checkFile(rootFile, file)
         }
+        report()
       })
+      report()
+      return
     }
     report()
   })
